@@ -1,9 +1,27 @@
 import os
 import sys
+import time
+import random
+import configparser
+
+# Generate a random delay between 0 and 1800 seconds (30 minutes)
+random_delay = random.randint(0, 3600)
+print(f"Delaying for {random_delay} seconds")
+time.sleep(random_delay)
 
 file = open("text.txt", "r")
 Lines = file.readlines()
-number = "4404035929"
+
+# Load the configuration file
+config = configparser.ConfigParser()
+config.read("config.ini")
+
+# Retrieve the phone number from the configuration file
+try:
+    number = config.get("Credentials", "PRIVATE_PHONE_NUMBER")
+except configparser.Error:
+    print("Error: Unable to read the configuration file.")
+    sys.exit(1)
 
 script_path = "sendMessage.scpt"
 

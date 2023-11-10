@@ -4,13 +4,13 @@
     <dict>
         <!-- Unique identifier for the launchd job -->
         <key>Label</key>
-        <string>com.daily.pythonjob</string>
+        <string>RATM.job</string>
 
         <!-- Specify the program and its arguments -->
         <key>ProgramArguments</key>
         <array>
             <string>/usr/local/bin/python3</string>
-            <string>/Users/dimaermakov/RATM/message.py</string>
+            <string>~/RATM/message.py</string>
         </array>
 
         <!-- Start the job when loaded -->
@@ -22,15 +22,11 @@
         <array>
             <dict>
                 <key>Hour</key>
-                <integer>17</integer> <!-- 24-hour format (5 PM) -->
+                <integer>18</integer> <!-- 24-hour format (5 PM) -->
             </dict>
             <dict>
                 <key>Hour</key>
-                <integer>18</integer> <!-- 24-hour format (6 PM) -->
-            </dict>
-            <dict>
-                <key>Hour</key>
-                <integer>19</integer> <!-- 24-hour format (7 PM) -->
+                <integer>1</integer> <!-- 24-hour format (7 PM) -->
             </dict>
         </array>
     </dict>
