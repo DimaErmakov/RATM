@@ -10,7 +10,7 @@
         <key>ProgramArguments</key>
         <array>
             <string>/usr/local/bin/python3</string>
-            <string>~/RATM/message.py</string>
+            <string>~/RATM/one_Message.py</string>
         </array>
 
         <!-- Start the job when loaded -->
