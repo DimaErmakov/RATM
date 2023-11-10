@@ -4,7 +4,7 @@ import time
 import random
 import configparser
 
-# Generate a random delay between 0 and 1800 seconds (30 minutes)
+# random_delay = 1
 random_delay = random.randint(0, 3600)
 print(f"Delaying for {random_delay} seconds")
 time.sleep(random_delay)
