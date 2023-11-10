@@ -1,1 +1,4 @@
-Lorem Ipsum
+Open a new file in VSCode.
+Type lorem and press Tab. This will generate a predefined Lorem Ipsum text snippet.
+You can control the length of the generated text by specifying a number after lorem. For example, lorem5 will generate five words of Lorem Ipsum text.
+If you need a specific number of paragraphs, you can use lorem[number of paragraphs]. For example, lorem3 will generate three paragraphs of Lorem Ipsum text.
