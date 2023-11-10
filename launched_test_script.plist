@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+    <dict>
+        <!-- Unique identifier for the launchd job -->
+        <key>Label</key>
+        <string>com.daily.pythonjob</string>
+
+        <!-- Specify the program and its arguments -->
+        <key>ProgramArguments</key>
+        <array>
+            <string>/usr/local/bin/python3</string>
+            <string>/Users/dimaermakov/RATM/message.py</string>
+        </array>
+
+        <!-- Start the job when loaded -->
+        <key>RunAtLoad</key>
+        <true />
+
+        <!-- Schedule the job to run daily between 5 PM and 8 PM -->
+        <key>StartCalendarInterval</key>
+        <array>
+            <dict>
+                <key>Hour</key>
+                <integer>17</integer> <!-- 24-hour format (5 PM) -->
+            </dict>
+            <dict>
+                <key>Hour</key>
+                <integer>18</integer> <!-- 24-hour format (6 PM) -->
+            </dict>
+            <dict>
+                <key>Hour</key>
+                <integer>19</integer> <!-- 24-hour format (7 PM) -->
+            </dict>
+        </array>
+    </dict>
+</plist>
