@@ -22,7 +22,7 @@
         <array>
             <dict>
                 <key>Hour</key>
-                <integer>18</integer> <!-- 24-hour format (5 PM) -->
+                <integer>20</integer> <!-- 24-hour format (5 PM) -->
                 <key>Minute</key>
                 <integer>1</integer>
             </dict>
