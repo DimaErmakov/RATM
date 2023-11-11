@@ -1,6 +1,6 @@
 # RATM - Reminder Automation Text Messaging
 
-RATM is a simple Python script that automates the process of sending text messages as reminders. The script reads messages from a file and sends them to a specified phone number. The execution is scheduled using launchd on macOS.
+RATM is a simple Python script that automates the process of sending text messages as reminders. The script reads messages from a file and sends them to a specified phone number. The execution is scheduled using launchd on macOS. Special thanks to [Nick King](https://github.com/nrking0)
 
 ## Installation
 
@@ -32,10 +32,10 @@ Use the following commands to schedule and unschedule the script using launchd:
 
 ```bash
 # Schedule the script to run
-launchctl bootstrap gui/501 ~/RATM/automated_Text_Script.plist
+launchctl bootstrap gui/501 /Users/dimaermakov/RATM/automated_Text_Script.plist
 
 # Unschedule the script
-launchctl bootout gui/501 ~/RATM/automated_Text_Script.plist
+launchctl bootout gui/501 /Users/dimaermakov/RATM/automated_Text_Script.plist
 ```
 
 ### Execution
@@ -45,6 +45,7 @@ Run the script manually or wait for it to be triggered by launchd. `all_Messages
 ```bash
 python3 all_Messages.py
 ```
+
 ```bash
 python3 one_Message.py
 ```

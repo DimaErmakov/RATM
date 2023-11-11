@@ -9,8 +9,8 @@
         <!-- Specify the program and its arguments -->
         <key>ProgramArguments</key>
         <array>
-            <string>/usr/local/bin/python3</string>
-            <string>~/RATM/one_Message.py</string>
+            <string>/Library/Frameworks/Python.framework/Versions/3.11/bin/python3</string>
+            <string>/Users/dimaermakov/RATM/one_Message.py</string>
         </array>
 
         <!-- Start the job when loaded -->
@@ -22,11 +22,9 @@
         <array>
             <dict>
                 <key>Hour</key>
-                <integer>20</integer> <!-- 24-hour format (5 PM) -->
-            </dict>
-            <dict>
-                <key>Hour</key>
-                <integer>1</integer> <!-- 24-hour format (7 PM) -->
+                <integer>18</integer> <!-- 24-hour format (5 PM) -->
+                <key>Minute</key>
+                <integer>1</integer>
             </dict>
         </array>
     </dict>
