@@ -31,11 +31,9 @@ Replace `"PHONE_NUMBER"` with the actual private phone number.
 Use the following commands to schedule and unschedule the script using launchd:
 
 ```bash
-# Schedule the script to run
-launchctl bootstrap gui/501 /Users/dimaermakov/RATM/automated_Text_Script.plist
+sudo launchctl bootstrap gui/501 /Users/dimaermakov/RATM/automated_Text_Script.plist
 
-# Unschedule the script
-launchctl bootout gui/501 /Users/dimaermakov/RATM/automated_Text_Script.plist
+sudo launchctl bootout gui/501 /Users/dimaermakov/RATM/automated_Text_Script.plist
 ```
 
 ### Execution
