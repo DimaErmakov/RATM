@@ -4,8 +4,8 @@ import time
 import random
 import configparser
 
-random_delay = 1
-# random_delay = random.randint(0, 60 * 3)
+# random_delay = 1
+random_delay = random.randint(0, 60)
 print(f"Delaying for {random_delay} seconds")
 time.sleep(random_delay)
 
