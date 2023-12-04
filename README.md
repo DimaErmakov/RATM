@@ -56,4 +56,4 @@ python3 one_Message.py
 
 ## License
 
-This project is licensed under the [MIT License](https://opensource.org/license/mit/).
+This project is licensed under the [Attribution-NonCommercial 4.0 International](LICENSE).
