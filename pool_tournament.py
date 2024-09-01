@@ -1,7 +1,9 @@
 import pandas as pd
-import random
-import os
 from typing import List, Tuple, Optional
+import sys
+import time
+import keyboard
+import pyautogui
 
 # Define skill levels with corresponding numerical values
 SKILL_LEVEL_MAP = {
@@ -46,7 +48,9 @@ def create_bracket(
     return bracket
 
 
-def draft_messages(bracket: List[Tuple[pd.Series, Optional[pd.Series]]]) -> List[str]:
+def draft_messages(
+    bracket: List[Tuple[pd.Series, Optional[pd.Series]]]
+) -> List[Tuple[str, str]]:
     """Draft text messages for the tournament participants."""
     messages = []
 
@@ -63,27 +67,50 @@ def draft_messages(bracket: List[Tuple[pd.Series, Optional[pd.Series]]]) -> List
                 f"Hello {player2['First and Last Name']}, you are matched with {player1['First and Last Name']} "
                 f"for the upcoming round of the pool tournament. Please contact them at {player1['Phone Number']} to arrange your match time. Good luck!"
             )
-            messages.append(message1)
-            messages.append(message2)
+            messages.append((player1["Phone Number"], message1))
+            messages.append((player2["Phone Number"], message2))
         else:
             # Handle odd participant advancing
             message = f"Hello {player1['First and Last Name']}, you have automatically advanced to the next round due to an odd number of participants."
-            messages.append(message)
+            messages.append((player1["Phone Number"], message))
 
     return messages
 
 
-def save_messages_to_file(messages: List[str], file_path: str) -> None:
-    """Save the drafted messages to a text file."""
-    with open(file_path, "w") as f:
-        for message in messages:
-            f.write(message + "\n")
+def send_sms(to_number: str, message: str) -> None:
+    """Send SMS message. Here, this function will print messages for testing."""
+    # Here we only send a simulated SMS to Dimitry for testing
+    to_number = str(to_number)
+    if to_number == "4404035929":
+        print("test")
+        print(f"Sending SMS to {to_number}: {message}")
+    else:
+        print(f"Simulating SMS to {to_number}... [Testing Mode]")
+
+
+def send_sms(to_number: str, message: str) -> None:
+    to_number = str(to_number)
+    # if to_number == "4404035929":
+    if True:
+
+        module_dir = "C:/Users/ermak/OneDrive/Documents/ATDP"
+        sys.path.append(module_dir)
+        from windowsDailyPolls import find_and_click_image
+
+        find_and_click_image("RATM_images/start.png")
+        find_and_click_image("RATM_images/to.png")
+        time.sleep(1)
+        keyboard.write(to_number)
+        time.sleep(0.25)
+        pyautogui.press("enter")
+        time.sleep(0.25)
+        keyboard.write(message)
+        time.sleep(0.25)
+        pyautogui.press("enter")
 
 
 def main():
-    # Define file paths
     input_file_path = "Pool Tournament Sign Up  (Responses) - Form Responses 1.csv"
-    output_file_path = "tournament_messages.txt"
 
     # Load and process data
     df = load_data(input_file_path)
@@ -93,12 +120,8 @@ def main():
     bracket = create_bracket(df)
     messages = draft_messages(bracket)
 
-    # Print messages
-    for message in messages:
-        print(message)
-
-    # Save messages to a text file
-    save_messages_to_file(messages, output_file_path)
+    for phone_number, message in messages:
+        send_sms(phone_number, message)
 
 
 if __name__ == "__main__":
