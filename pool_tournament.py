@@ -1,238 +1,189 @@
-import pandas as pd
-from typing import List, Tuple, Optional
-import sys
+import challonge
+import csv
+from datetime import datetime, timedelta
+import pyautogui
 import time
 import keyboard
-import pyautogui
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-import ssl
 import configparser
 
-# Define skill levels with corresponding numerical values
-SKILL_LEVEL_MAP = {
-    "I do not know how to even use a pool cue.": 1,
-    "I have only played a few times.": 2,
-    "I know most rules and have played occasionally.": 3,
-    "I play regularly and can hold my own in most games.": 4,
-    "I am skilled or have experience in competitive play.": 5,
+config = configparser.ConfigParser()
+config.read("config.ini")
+
+# Retrieve the phone number from the configuration file
+try:
+    username = config.get("Credentials", "username")
+    api = config.get("Credentials", "api")
+except configparser.Error:
+    print("Error: Unable to read the configuration file.")
+
+
+def find_and_click_image(
+    image_filename,
+    biasx=0,
+    biasy=0,
+    up_or_down=None,
+    max_attempts=20,
+    DELAY=0.5,
+):
+    confidence = 0.7
+    screen_width, screen_height = pyautogui.size()
+
+    box = None
+    attempt = 0
+    while box is None and attempt < max_attempts:
+
+        try:
+            box = pyautogui.locateOnScreen(
+                image_filename,
+                confidence=confidence,
+                region=(0, 0, screen_width, screen_height),
+            )
+
+        except pyautogui.ImageNotFoundException:
+            print(f"{image_filename} not found.")
+
+        if up_or_down is not None and box is None:
+            print(f"{image_filename} not found. Scrolling...")
+            factor = 400 if up_or_down == "up" else -400
+            pyautogui.scroll(factor)
+            time.sleep(DELAY)
+
+        time.sleep(DELAY)
+        attempt += 1
+
+    if box is not None:
+        x, y, width, height = box
+        x = box.left + width / 2 + biasx
+        y = box.top + height / 2 + biasy
+
+        pyautogui.click(x, y)
+        return x, y
+    else:
+        print("Image not found after multiple attempts.")
+
+
+challonge.set_credentials(username, api)
+
+# Replace with your tournament's URL
+tournament = challonge.tournaments.show("ssz2fy7s")
+
+# Retrieve participants and create a mapping from participant ID to their details
+participants = challonge.participants.index(tournament["id"])
+participant_info = {
+    p["id"]: {"name": p["name"], "seed": p["seed"]} for p in participants
 }
 
+# Load phone numbers from your CSV file
+phone_numbers = {}
+with open("participants.csv", newline="") as csvfile:
+    reader = csv.DictReader(csvfile)
+    for row in reader:
+        full_name = f"{row['First and Last Name']}".strip()
+        phone_numbers[full_name] = row["Phone Number"]
 
-def load_data(file_path: str) -> pd.DataFrame:
-    """Load the CSV file into a DataFrame."""
-    return pd.read_csv(file_path)
+# Retrieve all matches
+matches = challonge.matches.index(tournament["id"])
 
+# Determine the current round (e.g., the lowest round number among open matches)
+open_matches = [m for m in matches if m["state"] == "open"]
+if not open_matches:
+    print("No open matches found.")
+    exit()
 
-def map_skill_levels(df: pd.DataFrame) -> pd.DataFrame:
-    """Map skill levels to numeric values and sort participants."""
-    df["Skill Level Value"] = df[
-        "How would you rate your pool-playing skill level?"
-    ].map(SKILL_LEVEL_MAP)
-    return df.sort_values(by="Skill Level Value", ascending=False).reset_index(
-        drop=True
+for match in open_matches:
+    # Skip matches without two players
+    if not match["player1_id"] or not match["player2_id"]:
+        continue
+
+    player1_id = match["player1_id"]
+    player2_id = match["player2_id"]
+
+    player1 = participant_info.get(player1_id)
+    player2 = participant_info.get(player2_id)
+
+    if not player1 or not player2:
+        continue  # Skip if participant info is missing
+
+    player1_name = player1["name"]
+    player2_name = player2["name"]
+
+    def format_phone(phone):
+        digits = "".join(filter(str.isdigit, phone))
+        if len(digits) == 10:
+            return f"{digits[:3]}-{digits[3:6]}-{digits[6:]}"
+        elif len(digits) == 11 and digits.startswith("1"):
+            return f"{digits[0]}-{digits[1:4]}-{digits[4:7]}-{digits[7:]}"
+        return phone  # fallback if format is unexpected
+
+    player1_phone_raw = phone_numbers.get(player1_name, "N/A")
+    player2_phone_raw = phone_numbers.get(player2_name, "N/A")
+    player1_phone = (
+        format_phone(player1_phone_raw) if player1_phone_raw != "N/A" else "N/A"
+    )
+    player2_phone = (
+        format_phone(player2_phone_raw) if player2_phone_raw != "N/A" else "N/A"
     )
 
+    # Calculate the deadline (4 days from now)
+    deadline = (datetime.now() + timedelta(days=4)).strftime("%B %d at 11:59 PM")
 
-def create_bracket(
-    participants: pd.DataFrame,
-) -> List[Tuple[pd.Series, Optional[pd.Series]]]:
-    """Create the tournament bracket."""
-    num_participants = len(participants)
-    bracket = []
-
-    for i in range(0, num_participants, 2):
-        if i + 1 < num_participants:
-            bracket.append((participants.iloc[i], participants.iloc[i + 1]))
-        else:
-            bracket.append(
-                (participants.iloc[i], None)
-            )  # Handle odd number of participants
-
-    return bracket
-
-
-def draft_messages(
-    bracket: List[Tuple[pd.Series, Optional[pd.Series]]]
-) -> List[Tuple[str, str]]:
-    """Draft messages for the tournament participants based on their preferred communication method."""
-    messages = []
-
-    for match in bracket:
-        player1 = match[0]
-        player2 = match[1]
-        # print(player1["First and Last Name"])
-        if player2 is not None:
-            print(player2["First and Last Name"])
-
-        if player2 is not None:
-            # Player 1 prefers email
-            if (
-                player1[
-                    "What is your preferred form of communication that your opponent can contact you with: "
-                ]
-                == "Email"
-            ):
-                contact_info1 = player2["Email"]
-                method1 = "Email"
-            else:
-                contact_info1 = player2["Phone Number"]
-                method1 = "Phone Number"
-
-            # Player 2 prefers email
-            if (
-                player2[
-                    "What is your preferred form of communication that your opponent can contact you with: "
-                ]
-                == "Email"
-            ):
-                contact_info2 = player1["Email"]
-                method2 = "Email"
-            else:
-                contact_info2 = player1["Phone Number"]
-                method2 = "Phone Number"
-
-            from datetime import datetime, timedelta
-
-            # Calculate the deadline date (one week from today)
-            deadline_date = (datetime.now() + timedelta(weeks=1)).strftime("%B %d, %Y")
-
-            message1 = (
-                f"Hello {player1['First and Last Name']}, you are matched with {player2['First and Last Name']} "
-                f"for the upcoming round of the pool tournament. Please contact them at their {method2.lower()}: {contact_info2}. "
-                "You have one week to complete your match. Please make sure to play your match and report the results to Dimitry Ermakov (440-403-5929) "
-                f"by {deadline_date}. Failure to do so will result in disqualification for both you and your opponent. Good luck!"
-            )
-
-            message2 = (
-                f"Hello {player2['First and Last Name']}, you are matched with {player1['First and Last Name']} "
-                f"for the upcoming round of the pool tournament. Please contact them at their {method1.lower()}: {contact_info1}. "
-                "You have one week to complete your match. Please make sure to play your match and report the results to Dimitry Ermakov (440-403-5929) "
-                f"by {deadline_date}. Failure to do so will result in disqualification for both you and your opponent. Good luck!"
-            )
-
-            messages.append((contact_info1, message1))
-            messages.append((contact_info2, message2))
-        else:
-            # Handle odd participant advancing
-            message = f"Hello {player1['First and Last Name']}, you have automatically advanced to the next round due to an odd number of participants."
-            preferred_method = player1[
-                "What is your preferred form of communication that your opponent can contact you with: "
-            ]
-            contact_info = (
-                player1["Email"]
-                if preferred_method == "Email"
-                else player1["Phone Number"]
-            )
-            messages.append((contact_info, message))
-
-    return messages
-
-
-def save_messages_to_file(messages: List[Tuple[str, str]], file_path: str) -> None:
-    """Save the drafted messages to a text file."""
-    with open(file_path, "w") as f:
-        for contact_info, message in messages:
-            f.write(message + "\n")
-
-
-def send_sms(to_number: str, message: str) -> None:
-    """Send SMS message using the provided phone number."""
-    to_number = str(to_number)
-    # Only execute if the number is not empty
-    if to_number and to_number != "nan":
-        module_dir = "C:/Users/ermak/OneDrive/Documents/ATDP"
-        sys.path.append(module_dir)
-        from windowsDailyPolls import find_and_click_image
-
-        find_and_click_image("RATM_images/start.png")
-        find_and_click_image("RATM_images/to.png")
-        time.sleep(1)
-        keyboard.write(to_number)
-        time.sleep(0.25)
-        pyautogui.press("enter")
-        time.sleep(0.25)
-        keyboard.write(message)
-        time.sleep(0.25)
-        pyautogui.press("enter")
-
-
-def send_email(
-    email_address: str, message: str, subject: str = "Pool Tournament Opponent Matchup"
-) -> None:
-    """Send an email to the given address with the provided message and subject."""
-
-    if not email_address or email_address == "nan":
-        print("Invalid email address. Email not sent.")
-        return
-
-    config = configparser.ConfigParser()
-    config.read("config.ini")
-
-    EMAIL = config["EMAIL"]["email"]
-    PASSWORD = config["EMAIL"]["password"]
-    SMTP_SERVER = config["EMAIL"]["smtp_server"]
-    SMTP_PORT = config.getint("EMAIL", "smtp_port", fallback=587)
-
-    msg = MIMEMultipart()
-    msg["From"] = EMAIL
-    # msg["To"] = "ermakovd06@gmail.com"
-    msg["To"] = email_address
-    msg["Subject"] = subject
-
-    msg.attach(MIMEText(message, "plain"))
-
-    context = ssl.create_default_context()
-
-    try:
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls(context=context)  # Secure the connection
-            server.login(EMAIL, PASSWORD)
-            server.send_message(msg)
-            print(f"Email sent to {email_address}")
-    except Exception as e:
-        print(f"Failed to send email to {email_address}. Error: {e}")
-
-
-def main():
-    input_file_path = "Pool Tournament Sign Up  (Responses) - Form Responses 1.csv"
-    output_file_path = "tournament_messages.txt"
-
-    # Load and process data
-    df = load_data(input_file_path)
-    df = map_skill_levels(df)
-
-    # Generate the bracket and draft messages
-    bracket = create_bracket(df)
-    messages = draft_messages(bracket)
-
-    intro_message = (
-        f"Welcome to the Hillsdale Pool Tournament!\n\n"
-        "Here is what you can expect:\n\n"
-        "1. Opponent Communication: You will receive a message via your preferred form of communication "
-        "(email or phone) that will contain details about your opponent for each round. The message will include "
-        "their contact information, so you can arrange the match at a convenient time.\n\n"
-        "2. Tournament Format: The tournament will be conducted in a knockout format, where each participant "
-        "will face another in each round. Winners will advance to the next round until a champion is determined.\n\n"
-        "3. Match Scheduling: Matches should be scheduled and played within the designated timeframe for each round. "
-        "If you are unable to schedule your match, please inform Dimitry Ermakov (440-403-5929) as soon as possible.\n\n"
-        "Best of luck in the tournament! Keep an eye out for your first match details, which will be "
-        "sent to you shortly.\n\n"
-        "Best regards,\nDimitry Ermakov"
+    # Message for player 1
+    message1 = (
+        f"Hello {player1_name}, your opponent for this round of the pool tournament is {player2_name} "
+        f"({player2_phone}). Please coordinate with him or her to schedule your match. "
+        f"Don’t forget to text me the result with the score before {deadline}. Good luck."
     )
 
-    for contact_info, message in messages:
-        if "@" in contact_info:
-            send_email(contact_info, message)  # Handle email sending
-        else:
-            send_sms(contact_info, message)  # Handle SMS sending
+    # Message for player 2
+    message2 = (
+        f"Hello {player2_name}, your opponent for this round of the pool tournament is {player1_name} "
+        f"({player1_phone}). Please coordinate with him or her to schedule your match. "
+        f"Don’t forget to text me the result with the score before {deadline}. Good luck."
+    )
 
-    # Save messages to a text file
-    save_messages_to_file(messages, output_file_path)
+    # https://voice.google.com/u/0/messages
 
-    print(f"All messages have been saved to {output_file_path}.")
+    print(message1)
+    find_and_click_image(
+        r"C:\Users\ermak\OneDrive\Documents\RATM\RATM_images\sendNewMessage.png"
+    )
+    time.sleep(2)
+    keyboard.write("4404035929")
+    # keyboard.write(player1_phone_raw)
+    time.sleep(2)
+    pyautogui.press("down")
+    time.sleep(1)
+    pyautogui.press("enter")
+    time.sleep(2)
+    pyautogui.press("tab", presses=3)
+    keyboard.write(message1)
+    time.sleep(2)
+    pyautogui.press("tab")
+    time.sleep(2)
+    pyautogui.press("enter")
+    # exit()
 
+    print(message2)
+    find_and_click_image(
+        r"C:\Users\ermak\OneDrive\Documents\RATM\RATM_images\sendNewMessage.png"
+    )
+    time.sleep(2)
+    keyboard.write("4404035929")
+    # keyboard.write(player2_phone_raw)
+    time.sleep(2)
+    pyautogui.press("down")
+    time.sleep(1)
+    pyautogui.press("enter")
+    time.sleep(2)
+    pyautogui.press("tab", presses=3)
+    keyboard.write(message1)
+    time.sleep(2)
+    pyautogui.press("tab")
+    time.sleep(2)
+    pyautogui.press("enter")
+    # exit()
 
-if __name__ == "__main__":
-    main()
+    # Save messages to a txt file
+    with open("messages.txt", "a", encoding="utf-8") as f:
+        f.write(message1 + "\n")
+        f.write(message2 + "\n")
